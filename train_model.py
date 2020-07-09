@@ -10,7 +10,9 @@ from os.path import join, basename, dirname, exists
 import keras
 from keras import backend as K
 
-
+"""
+encoder编码模型
+"""
 def network_encoder(x, code_size):
 
     ''' Define the network mapping images to embeddings '''
@@ -35,7 +37,9 @@ def network_encoder(x, code_size):
 
     return x
 
-
+"""
+自回归模型
+"""
 def network_autoregressive(x):
 
     ''' Define the network that integrates information along the sequence '''
@@ -46,7 +50,9 @@ def network_autoregressive(x):
 
     return x
 
-
+"""
+code_size: 128. 图像embedding的维度
+"""
 def network_prediction(context, code_size, predict_terms):
 
     ''' Define the network mapping context to multiple embeddings '''
@@ -86,6 +92,16 @@ class CPCLayer(keras.layers.Layer):
         return (input_shape[0][0], 1)
 
 
+"""
+terms和predict_terms都为4，意思是预测接下来4个步骤的内容
+
+定义了3个模型
+1. 编码模型，将图片进行编码
+2. 根据自回归模型计算的Context，总结了之前的编码状态，根据Context计算接下来4个步骤的图像embedding
+3. 使用编码模型，进行4个步的图像编码
+
+CPCLayer: 计算2模型和3模型的embedding的相似性
+"""
 def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
     ''' Define the CPC network combining encoder and autoregressive model '''
@@ -101,6 +117,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
 
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
+    # TimeDistributed返回的是每步的结果
     x_encoded = keras.layers.TimeDistributed(encoder_model)(x_input)
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
